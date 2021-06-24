@@ -1,6 +1,6 @@
 from time import sleep
 class Simulation:
-    def __init__(self, speed, dt, assignments_each_iter, finish_process):
+    def __init__(self, speed, dt, finish_process):
         """
         TAKES CARE OF SIMULATION OF EXPERIMENTS
         :param speed (float): speed of each drone m/s
@@ -9,7 +9,6 @@ class Simulation:
         """
         self.speed = speed
         self.dt = dt
-        self.assignments_each_iter = assignments_each_iter
         self.time_elapsed_list = [0]
         self.number_of_checkpoints_list = []
         self.finish_process = finish_process
@@ -25,8 +24,10 @@ class Simulation:
         :param controller_object: contains all controller functions
         """
         self.number_of_checkpoints_list.append(world_object.checkpoints_coord.shape[0])
-        while (len(world_object.remaining_checkpoints)>0 and not self.finish_process) or (len(world_object.remaining_checkpoints)>world_object.n_agents):
-            if self.assignments_each_iter or len(self.number_of_checkpoints_list) == 1 or not self.number_of_checkpoints_list[-1] == self.number_of_checkpoints_list[-2]:
+        #while (len(world_object.remaining_checkpoints)>0 and self.finish_process) or (len(world_object.remaining_checkpoints)>world_object.n_agents):
+
+        while len(world_object.remaining_checkpoints)>world_object.n_checkpoints*0.8:
+            if len(self.number_of_checkpoints_list) == 1 or not self.number_of_checkpoints_list[-1] == self.number_of_checkpoints_list[-2]:
                 reevaluate_assignments = True
                 """world_object.save_graph(world_object.get_adjacency_matrix())
                 world_object.save_adjacency_plot(world_object.get_adjacency_matrix())

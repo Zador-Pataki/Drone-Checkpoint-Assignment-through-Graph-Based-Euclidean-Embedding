@@ -1,12 +1,14 @@
-from world import World
-from simulation import Simulation
-from controller import Controller
+import numpy as np
 from time import time
 from tqdm import tqdm
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+from world import World
+from simulation import Simulation
+from controller import Controller
 
 # STRATEGITES TO INVESTIGATE
 # 1: recluster each iter, reassign after reclsutering
@@ -17,7 +19,7 @@ import pandas as pd
 #    assigned to only checkpoint in cluster 2? Then drone B has no free target. Best options: reassign drone A or have
 #    both drone A and B target checkoint in cluster 2. Latter is easiest to program.
 # 4: recluster if drone reached a checkpoint (when number of checkpoints changes) but only reassign drone that reached checkpoint
-cse_strategy_list=[1, 2, 3, 4]
+cse_strategy_list=[2, 3, 4]
 
 # EXPERIMENTAL SETUP
 #   # STATIC
@@ -48,7 +50,7 @@ if run_experiments:
     for i, cse_strategy in enumerate(cse_strategy_list):
         strategy_iter = 0
         for n_agents in n_agents_list:
-            for n_checkpoints in n_checkpoints_list:
+            for n_checkpoints in tqdm(n_checkpoints_list):
                 time_list = []
                 for _ in range(n_tests):
                     world = World(n_agents=n_agents, n_checkpoints=n_checkpoints, world_size=world_size, view_radius=view_radius)
@@ -57,6 +59,7 @@ if run_experiments:
 
                     simulation.simulate(world, controller)
                     time_list.append(simulation.time_elapsed_list[-1])
+                    break
 
                 experimental_results[i,strategy_iter] = np.mean(time_list)
                 strategy_iter += 1

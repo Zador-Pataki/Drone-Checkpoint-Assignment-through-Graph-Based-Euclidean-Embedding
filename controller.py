@@ -153,10 +153,25 @@ class Controller:
                     world_object.agents_dict[i]['assigned_idx'] = assignments[i]
 
         elif self.assignment_group == 'spectral_clustering':
+            # STRATEGITES TO INVESTIGATE
+            # 1: recluster each iter, reassign after reclsutering
+            # 2: recluster only if clsuter is empty and reassign all drones to clusters and immediatley reassign drones to
+            #    ckeckpoints in new clusters
+            # 3: recluster only if clsuter is empty and reassign all drones to clusters. However, only reassign drone to new
+            #    checkpoint if it reached previously assigned checkpoint. (catch: what if drone A assigned to cluster 1 is still
+            #    assigned to only checkpoint in cluster 2? Then drone B has no free target. Best options: reassign drone A or have
+            #    both drone A and B target checkoint in cluster 2. Latter is easiest to program.
+            # 4: recluster if drone reached a checkpoint (when number of checkpoints changes) but only reassign drone that reached checkpoint
             recluster = False
-            for i in range(world_object.n_agents):
-                if not world_object.agents_dict[i]['cluster_idx']:
-                    recluster = True
+            if self.cse_strategy == 1: recluster = True
+            else:
+                for i in range(world_object.n_agents):
+                    if not world_object.agents_dict[i]['cluster_idx'] and (self.cse_strategy == 2 or self.cse_strategy == 3):
+                        recluster = True
+                        break
+                    elif self.cse_strategy == 4 and world_object.agents_dict[i]['assigned_idx'] is None:
+                        recluster = True
+                        break
             if recluster:
                 D = world_object.get_distance_matrix(world_object.get_adjacency_matrix())
                 D_copy = D.copy()
@@ -194,6 +209,7 @@ class Controller:
 
                     cluster_assignments = self.get_assignments_euclidean(X_embed_agents, cluster_centers)
                     for i in range(world_object.n_agents):
+
                         world_object.agents_dict[i]['cluster_idx'] = list(np.array(world_object.remaining_checkpoints)[class_idxs[cluster_assignments[i]]])
 
             if self.assignment_strategy == 'random':
@@ -205,11 +221,9 @@ class Controller:
                     world_object.agents_dict[i]['assigned_idx'] = assignments[i]
             elif self.assignment_strategy == 'CSE':
                 for i in range(world_object.n_agents):
-                    if not world_object.agents_dict[i]['assigned_idx']:# or recluster:
+                    if self.cse_strategy == 1 or (not world_object.agents_dict[i]['assigned_idx']) or (self.cse_strategy == 2 and recluster):
                         distances=world_object.agents_coord[i][np.newaxis,:]-world_object.checkpoints_coord[world_object.agents_dict[i]['cluster_idx']]
                         distances = np.linalg.norm(distances, axis=1)
                         assignment = np.argmin(distances)
                         assignment = world_object.agents_dict[i]['cluster_idx'][assignment]
                         world_object.agents_dict[i]['assigned_idx'] = assignment
-
-
