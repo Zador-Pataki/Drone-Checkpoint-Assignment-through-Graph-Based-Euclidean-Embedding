@@ -37,6 +37,16 @@ n_agents_list=[3,10,50,200] # NUMBER OF AGENTS WE WILL EXPERIMENT WITH
 n_checkpoints_list=[400,1000,3000] # NUMBER OF CHECKPOINTS WE WILL EXPERIMENT WITH
 
 
+csv_name = "experiment_labels_strats_"
+for i in cse_strategy_list:
+    csv_name += str(i)
+    csv_name += '_'
+
+csv_name += "n_agents_"
+for i in n_agents_list:
+    csv_name += str(i)
+    csv_name += '_'
+csv_name += '.csv'
 
 run_experiments=True
 if run_experiments:
@@ -65,7 +75,7 @@ if run_experiments:
                 strategy_iter += 1
 
     experimental_results_df = pd.DataFrame(experimental_results)
-    experimental_results_df.to_csv('experimental_labels.csv', index_label=cse_strategy_list, header=experiment_labels)
+    experimental_results_df.to_csv(csv_name, index_label=cse_strategy_list, header=experiment_labels)
 
-experimental_results_df = pd.read_csv('experimental_labels.csv')
+experimental_results_df = pd.read_csv(csv_name)
 
