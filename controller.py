@@ -4,6 +4,7 @@ from sklearn.cluster import SpectralClustering
 from time import sleep, time
 import matplotlib.pyplot as plt
 from scipy.optimize import linprog
+from sklearn.cluster import KMeans
 
 
 class Controller:
@@ -23,16 +24,17 @@ class Controller:
         self.set_assignment(world_object)
         target_coord = np.zeros((world_object.n_agents, 3))
         for i in range(world_object.n_agents):
-            target_coord[i,:] = world_object.checkpoints_coord[world_object.agents_dict[i]['assigned_idx'], :]
+            target_coord[i, :] = world_object.checkpoints_coord[world_object.agents_dict[i]['assigned_idx'], :]
         directions = target_coord - world_object.agents_coord
         directions = normalize(directions, axis=1)
         return directions
 
     def get_checkpoint_cluster_labels(self, D, assignment_group, n_clusters):
-        if assignment_group == 'spectral_clustering':
+        if assignment_group == 'clustering':
             SC = SpectralClustering(n_clusters=n_clusters, affinity="precomputed")
 
-            try:labels_SC = SC.fit_predict(D)
+            try:
+                labels_SC = SC.fit_predict(D)
             except:
                 plt.imshow(D)
                 plt.colorbar()
@@ -41,9 +43,14 @@ class Controller:
 
             return labels_SC
 
+    def get_KMeans_labels(self, world_object):
+        kmeans = KMeans(n_clusters=world_object.n_agents)
+        labels = kmeans.fit_predict(world_object.checkpoints_coord[world_object.remaining_checkpoints, :])
+        return labels
+
     def get_permute_idx(self, labels):
-        perm=[]
-        for j in range(labels.max()+1):
+        perm = []
+        for j in range(labels.max() + 1):
             for i in range(len(labels)):
                 if labels[i] == j:
                     perm.append(i)
@@ -59,27 +66,27 @@ class Controller:
         n = X_agents.shape[0]
         m = X_checkpoints.shape[0]
 
-        l_u = (0,1)
-        A_eq = np.zeros((n, n*m))
+        l_u = (0, 1)
+        A_eq = np.zeros((n, n * m))
         for i, x in enumerate(A_eq):
-            for y in range(i*m, (i+1)*m):
-                A_eq[i, y]=1
+            for y in range(i * m, (i + 1) * m):
+                A_eq[i, y] = 1
         b_eq = np.ones((n, 1))
 
-        A_ineq = np.zeros((m, n*m))
+        A_ineq = np.zeros((m, n * m))
         for i in range(m):
             for j in range(n):
-                A_ineq[i, i+j*m] = 1
-        b_ineq = np.ones((m,1))
-        if n>m:
+                A_ineq[i, i + j * m] = 1
+        b_ineq = np.ones((m, 1))
+        if n > m:
             A_ineq = -A_ineq
             b_ineq = -b_ineq
 
-
-        costs = np.linalg.norm(X_agents[:,np.newaxis,:]-X_checkpoints[np.newaxis,:,:], axis=2).flatten()[np.newaxis,:]
+        costs = np.linalg.norm(X_agents[:, np.newaxis, :] - X_checkpoints[np.newaxis, :, :], axis=2).flatten()[
+                np.newaxis, :]
 
         P = linprog(costs, A_eq=A_eq, b_eq=b_eq, A_ub=A_ineq, b_ub=b_ineq, bounds=l_u, method='highs-ds').x
-        P= np.reshape(P,(n,m))
+        P = np.reshape(P, (n, m))
 
         return P
 
@@ -90,8 +97,13 @@ class Controller:
         :param X_checkpoints:
         :return:
         """
-        P = self.get_assignment_probabilities(X_agents, X_checkpoints)
-        assignments = np.argmax(P, axis=1)
+        if X_agents.shape[0] > 1:
+            P = self.get_assignment_probabilities(X_agents, X_checkpoints)
+            assignments = np.argmax(P, axis=1)
+        else:
+            distances = X_agents - X_checkpoints
+            distances = np.linalg.norm(distances, axis=1)
+            assignments = [np.argmin(distances)]
         return assignments
 
     def set_assignment(self, world_object):
@@ -101,13 +113,13 @@ class Controller:
         :param checkpoints_coord: coordinates of each checkpoint
         :return: assignments
         """
-        assignments=[]
-        if self.assignment_group == 'points' or world_object.n_agents>=len(world_object.remaining_checkpoints):
+        assignments = []
+        if self.assignment_group == 'points' or world_object.n_agents >= len(world_object.remaining_checkpoints):
             if self.assignment_strategy == 'random':
                 free_agents = 0
                 for i in range(world_object.n_agents):
                     if world_object.agents_dict[i]['assigned_idx'] is None:
-                        free_agents+=1
+                        free_agents += 1
                 if free_agents > 0:
                     for i in world_object.remaining_checkpoints:
                         assign = True
@@ -116,24 +128,24 @@ class Controller:
                                 if i == world_object.agents_dict[j]['assigned_idx']:
                                     assign = False
                         if assign: assignments.append(i)
-                    if len(assignments)>0:
+                    if len(assignments) > 0:
                         if free_agents > len(assignments):
-                            for i in range(int(free_agents/len(assignments))):
+                            for i in range(int(free_agents / len(assignments))):
                                 assignments_ = assignments.copy()
                                 np.random.shuffle(assignments_)
                                 assignments = assignments + assignments_
                         assignments = assignments[:free_agents]
                         np.random.shuffle(assignments)
-                        update=0
+                        update = 0
                         for i in range(world_object.n_agents):
                             if world_object.agents_dict[i]['assigned_idx'] is None:
                                 world_object.agents_dict[i]['assigned_idx'] = assignments[update]
-                                update+=1
+                                update += 1
                     else:
                         for i in range(world_object.n_agents):
                             if world_object.agents_dict[i]['assigned_idx'] is None:
-                                world_object.agents_dict[i]['assigned_idx'] = np.random.choice(world_object.remaining_checkpoints)
-
+                                world_object.agents_dict[i]['assigned_idx'] = np.random.choice(
+                                    world_object.remaining_checkpoints)
 
                 # for i in range(int(world_object.agents_coord.shape[0]/len(world_object.remaining_checkpoints))+1):
                 #     idx = np.arange(len(world_object.remaining_checkpoints))
@@ -144,15 +156,59 @@ class Controller:
                 # assignments = list(np.array(world_object.remaining_checkpoints)[assignments])
 
             if self.assignment_strategy == 'CSE':
-                X_embed = world_object.get_CSE(world_object.get_distance_matrix(world_object.get_adjacency_matrix()), 5)
-                X_embed_agents = X_embed[:world_object.n_agents, :]
-                X_embed_checkpoints = X_embed[world_object.n_agents:, :]
-                assignments = self.get_assignments_euclidean(X_embed_agents, X_embed_checkpoints)
-                assignments = list(np.array(world_object.remaining_checkpoints)[assignments])
+                checkpoints_unassigned = list(np.arange(len(world_object.remaining_checkpoints)))
+                agents_unassigned = []
+                do_embed = False
                 for i in range(world_object.n_agents):
-                    world_object.agents_dict[i]['assigned_idx'] = assignments[i]
+                    if world_object.agents_dict[i]['assigned_idx'] is None:
+                        agents_unassigned.append(i)
+                        do_embed = True
+                    else:
+                        checkpoints_unassigned.remove(
+                            world_object.remaining_checkpoints.index(world_object.agents_dict[i]['assigned_idx']))
 
-        elif self.assignment_group == 'spectral_clustering':
+                if do_embed:
+                    X_embed = world_object.get_CSE(
+                        world_object.get_distance_matrix(world_object.get_adjacency_matrix()), 5)
+
+                    X_embed_agents = X_embed[:world_object.n_agents, :]
+                    X_embed_agents_unassigned = X_embed_agents[agents_unassigned, :]
+                    X_embed_checkpoints = X_embed[world_object.n_agents:, :]
+                    X_embed_checkpoints_unassigned = X_embed_checkpoints[checkpoints_unassigned, :]
+                    assignments = self.get_assignments_euclidean(X_embed_agents_unassigned,
+                                                                 X_embed_checkpoints_unassigned)
+
+
+                    assignments = list(np.array(checkpoints_unassigned)[assignments])
+                    assignments = list(np.array(world_object.remaining_checkpoints)[assignments])
+                    for i, j in enumerate(agents_unassigned):
+                        world_object.agents_dict[j]['assigned_idx'] = assignments[i]
+
+            if self.assignment_strategy == 'euclidean':
+                checkpoints_unassigned = list(np.arange(len(world_object.remaining_checkpoints)))
+                agents_unassigned = []
+                do_assignment = False
+                for i in range(world_object.n_agents):
+                    if world_object.agents_dict[i]['assigned_idx'] is None:
+                        agents_unassigned.append(i)
+                        do_assignment = True
+                    else:
+                        checkpoints_unassigned.remove(
+                            world_object.remaining_checkpoints.index(world_object.agents_dict[i]['assigned_idx']))
+
+                if do_assignment:
+                    X_agents_unassigned = world_object.agents_coord[agents_unassigned, :]
+                    X_checkpoints_unassigned = world_object.checkpoints_coord[list(
+                        np.array(world_object.remaining_checkpoints)[checkpoints_unassigned]), :]
+                    assignments = self.get_assignments_euclidean(X_agents_unassigned,
+                                                                 X_checkpoints_unassigned)
+                    assignments = list(np.array(checkpoints_unassigned)[assignments])
+                    assignments = list(np.array(world_object.remaining_checkpoints)[assignments])
+                    for i, j in enumerate(agents_unassigned):
+                        world_object.agents_dict[j]['assigned_idx'] = assignments[i]
+
+
+        elif self.assignment_group == 'clustering':
             # STRATEGITES TO INVESTIGATE
             # 1: recluster each iter, reassign after reclsutering
             # 2: recluster only if clsuter is empty and reassign all drones to clusters and immediatley reassign drones to
@@ -163,67 +219,124 @@ class Controller:
             #    both drone A and B target checkoint in cluster 2. Latter is easiest to program.
             # 4: recluster if drone reached a checkpoint (when number of checkpoints changes) but only reassign drone that reached checkpoint
             recluster = False
-            if self.cse_strategy == 1: recluster = True
+            reassign = False
+            if self.cse_strategy == 1:
+                recluster = True
             else:
                 for i in range(world_object.n_agents):
-                    if not world_object.agents_dict[i]['cluster_idx'] and (self.cse_strategy == 2 or self.cse_strategy == 3):
+
+                    if not world_object.agents_dict[i]['cluster_idx'] and (
+                            self.cse_strategy == 2 or self.cse_strategy == 3):
                         recluster = True
                         break
                     elif self.cse_strategy == 4 and world_object.agents_dict[i]['assigned_idx'] is None:
                         recluster = True
                         break
-            if recluster:
+                    elif world_object.agents_dict[i]['assigned_idx'] is None:
+                        reassign = True
+
+            if self.assignment_strategy=='CSE' and (recluster or reassign):
                 D = world_object.get_distance_matrix(world_object.get_adjacency_matrix())
-                D_copy = D.copy()
-                D_copy = np.nan_to_num(D_copy, posinf=0)
-                D = np.nan_to_num(D, posinf=D_copy.max()*6)
-                D_checkpoints = D[world_object.n_agents:, world_object.n_agents:]
-                labels_SC = self.get_checkpoint_cluster_labels(D_checkpoints, assignment_group=self.assignment_group, n_clusters=world_object.n_agents)
+                X_embed = world_object.get_CSE(D, 5)
+                X_embed_agents = X_embed[:world_object.n_agents, :]
+                X_embed_checkpoints = X_embed[world_object.n_agents:, :]
 
-                # perm = self.get_permute_idx(labels_SC)
-                # permuted_D = self.get_permuted_matrix(D_checkpoints, perm)
-                # world_object.save_distance_plot(world_object.get_distance_matrix(world_object.get_adjacency_matrix())[world_object.n_agents:, world_object.n_agents:])
-                # idx = np.nonzero(permuted_D > D_copy.max())
-                # permuted_D[idx]=np.inf
-                # world_object.save_distance_plot(permuted_D, boundaries='clusters', cluster_labels=labels_SC)# DISPLAY CLUSTERING
+            if recluster:
+                if self.assignment_strategy=='random' or self.assignment_strategy=='CSE':
+                    D_copy = D.copy()
+                    D_copy = np.nan_to_num(D_copy, posinf=0)
+                    D = np.nan_to_num(D, posinf=D_copy.max() * 6)
+                    D_checkpoints = D[world_object.n_agents:, world_object.n_agents:]
+                    labels_SC = self.get_checkpoint_cluster_labels(D_checkpoints, assignment_group=self.assignment_group,
+                                                                   n_clusters=world_object.n_agents)
 
-                if self.assignment_strategy == 'random':
-                    idx = np.arange(world_object.n_agents)
-                    np.random.shuffle(idx)
+                    # perm = self.get_permute_idx(labels_SC)
+                    # permuted_D = self.get_permuted_matrix(D_checkpoints, perm)
+                    # world_object.save_distance_plot(world_object.get_distance_matrix(world_object.get_adjacency_matrix())[world_object.n_agents:, world_object.n_agents:])
+                    # idx = np.nonzero(permuted_D > D_copy.max())
+                    # permuted_D[idx]=np.inf
+                    # world_object.save_distance_plot(permuted_D, boundaries='clusters', cluster_labels=labels_SC)# DISPLAY CLUSTERING
 
-                    for i in np.unique(labels_SC):
-                        class_idx = list(np.nonzero(labels_SC==i)[0])
-                        world_object.agents_dict[idx[i]]['cluster_idx']=list(np.array(world_object.remaining_checkpoints)[class_idx])
+                    if self.assignment_strategy == 'random':
+                        idx = np.arange(world_object.n_agents)
+                        np.random.shuffle(idx)
 
-                elif self.assignment_strategy == 'CSE':
-                    X_embed = world_object.get_CSE(world_object.get_distance_matrix(world_object.get_adjacency_matrix()), 5)
-                    X_embed_agents = X_embed[:world_object.n_agents, :]
-                    X_embed_checkpoints = X_embed[world_object.n_agents:, :]
-                    cluster_centers = np.zeros((world_object.n_agents, X_embed.shape[1]))
+                        for i in np.unique(labels_SC):
+                            class_idx = list(np.nonzero(labels_SC == i)[0])
+                            world_object.agents_dict[idx[i]]['cluster_idx'] = list(
+                                np.array(world_object.remaining_checkpoints)[class_idx])
+
+                    elif self.assignment_strategy == 'CSE':
+                        """X_embed = world_object.get_CSE(
+                            world_object.get_distance_matrix(world_object.get_adjacency_matrix()), 5)
+                        X_embed_agents = X_embed[:world_object.n_agents, :]
+                        X_embed_checkpoints = X_embed[world_object.n_agents:, :]"""
+                        cluster_centers = np.zeros((world_object.n_agents, X_embed.shape[1]))
+                        class_idxs = []
+                        for i in np.unique(labels_SC):
+                            class_idx = list(np.nonzero(labels_SC == i)[0])
+                            class_idxs.append(class_idx)
+                            X_embed_checkpoints_i = X_embed_checkpoints[class_idx, :]
+                            cluster_centers[i, :] = np.sum(X_embed_checkpoints_i, axis=0) / X_embed_checkpoints_i.shape[0]
+
+                        cluster_assignments = self.get_assignments_euclidean(X_embed_agents, cluster_centers)
+                        for i in range(world_object.n_agents):
+                            world_object.agents_dict[i]['cluster_idx'] = list(
+                                np.array(world_object.remaining_checkpoints)[class_idxs[cluster_assignments[i]]])
+                elif self.assignment_strategy=='euclidean':
+                    labels_KMeans = self.get_KMeans_labels(world_object=world_object)
+                    cluster_centers = np.zeros((world_object.n_agents, 3))
                     class_idxs = []
-                    for i in np.unique(labels_SC):
-                        class_idx = list(np.nonzero(labels_SC==i)[0])
+                    for i in np.unique(labels_KMeans):
+                        class_idx = list(np.nonzero(labels_KMeans == i)[0])
                         class_idxs.append(class_idx)
-                        X_embed_checkpoints_i = X_embed_checkpoints[class_idx, :]
-                        cluster_centers[i,:] = np.sum(X_embed_checkpoints_i, axis=0)/X_embed_checkpoints_i.shape[0]
+                        X_checkpoints_i = world_object.checkpoints_coord[list(np.array(world_object.remaining_checkpoints)[class_idx]), :]
+                        cluster_centers[i, :] = np.sum(X_checkpoints_i, axis=0) / X_checkpoints_i.shape[0]
 
-                    cluster_assignments = self.get_assignments_euclidean(X_embed_agents, cluster_centers)
+                    cluster_assignments = self.get_assignments_euclidean(world_object.agents_coord, cluster_centers)
+
                     for i in range(world_object.n_agents):
+                        world_object.agents_dict[i]['cluster_idx'] = list(
+                            np.array(world_object.remaining_checkpoints)[class_idxs[cluster_assignments[i]]])
 
-                        world_object.agents_dict[i]['cluster_idx'] = list(np.array(world_object.remaining_checkpoints)[class_idxs[cluster_assignments[i]]])
+
 
             if self.assignment_strategy == 'random':
                 for i in range(world_object.n_agents):
                     if not world_object.agents_dict[i]['assigned_idx']:
                         assignments.append(np.random.choice(world_object.agents_dict[i]['cluster_idx']))
-                    else: assignments.append(world_object.agents_dict[i]['assigned_idx'])
+                    else:
+                        assignments.append(world_object.agents_dict[i]['assigned_idx'])
                 for i in range(world_object.n_agents):
                     world_object.agents_dict[i]['assigned_idx'] = assignments[i]
-            elif self.assignment_strategy == 'CSE':
+            elif self.assignment_strategy == 'euclidean':
                 for i in range(world_object.n_agents):
-                    if self.cse_strategy == 1 or (not world_object.agents_dict[i]['assigned_idx']) or (self.cse_strategy == 2 and recluster):
-                        distances=world_object.agents_coord[i][np.newaxis,:]-world_object.checkpoints_coord[world_object.agents_dict[i]['cluster_idx']]
+                    if self.cse_strategy == 1 or (not world_object.agents_dict[i]['assigned_idx']) or (
+                            self.cse_strategy == 2 and recluster):
+                        distances = world_object.agents_coord[i][np.newaxis, :] - world_object.checkpoints_coord[
+                            world_object.agents_dict[i]['cluster_idx']]
                         distances = np.linalg.norm(distances, axis=1)
                         assignment = np.argmin(distances)
                         assignment = world_object.agents_dict[i]['cluster_idx'][assignment]
                         world_object.agents_dict[i]['assigned_idx'] = assignment
+            elif self.assignment_strategy == 'CSE':
+
+                """X_embed = world_object.get_CSE(
+                            world_object.get_distance_matrix(world_object.get_adjacency_matrix()), 5)
+                X_embed_agents = X_embed[:world_object.n_agents, :]
+                X_embed_checkpoints = X_embed[world_object.n_agents:, :]"""
+                if recluster or reassign:
+                    for i in range(world_object.n_agents):
+                        if self.cse_strategy == 1 or (not world_object.agents_dict[i]['assigned_idx']) or (
+                                self.cse_strategy == 2 and recluster):
+                            cluster_idx=[]
+
+                            for idx in world_object.agents_dict[i]['cluster_idx']:
+                                cluster_idx.append(world_object.remaining_checkpoints.index(idx))
+
+                            assignment = self.get_assignments_euclidean(X_embed_agents[i,:][np.newaxis,:],
+                                                                         X_embed_checkpoints[cluster_idx,:])
+
+                            assignment = world_object.agents_dict[i]['cluster_idx'][assignment[0]]
+                            world_object.agents_dict[i]['assigned_idx'] = assignment
+

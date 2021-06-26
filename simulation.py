@@ -24,8 +24,7 @@ class Simulation:
         :param controller_object: contains all controller functions
         """
         self.number_of_checkpoints_list.append(world_object.checkpoints_coord.shape[0])
-        #while (len(world_object.remaining_checkpoints)>0 and self.finish_process) or (len(world_object.remaining_checkpoints)>world_object.n_agents): ############
-        while len(world_object.remaining_checkpoints)>world_object.n_checkpoints*0.8:
+        while (len(world_object.remaining_checkpoints)>0 and self.finish_process) or (len(world_object.remaining_checkpoints)>world_object.n_agents): ############
             if len(self.number_of_checkpoints_list) == 1 or not self.number_of_checkpoints_list[-1] == self.number_of_checkpoints_list[-2]:
                 reevaluate_assignments = True
                 """world_object.save_graph(world_object.get_adjacency_matrix())
@@ -36,7 +35,7 @@ class Simulation:
             self.world_step(world_object, controller_object, reevaluate_assignments)
             self.number_of_checkpoints_list.append(len(world_object.remaining_checkpoints))
             self.time_elapsed_list.append(self.time_elapsed_list[-1]+self.dt)
-            print("%.2f" % self.time_elapsed_list[-1], self.number_of_checkpoints_list[-1])
+            #print("%.2f" % self.time_elapsed_list[-1], self.number_of_checkpoints_list[-1])
             #print(world_object.agents_dict)
 
     def world_step(self, world_object, controller_object, reevaluate_assignments):

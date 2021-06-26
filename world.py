@@ -2,15 +2,15 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import shortest_path
 from time import time, sleep
-import networkx as nx
-import networkx.algorithms.shortest_paths as sp
+#import networkx as nx
+#import networkx.algorithms.shortest_paths as sp
 
 
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 from scipy.sparse.linalg import eigsh
 from scipy.linalg import eigh
-from treelib import Tree
+#from treelib import Tree
 class World:
     def __init__(self, n_agents, n_checkpoints, world_size, view_radius, random_seed=None):
         """
@@ -130,8 +130,9 @@ class World:
             for i in range(self.n_agents):
                 if np.linalg.norm(self.agents_coord[i,:]-self.checkpoints_coord[self.agents_dict[i]['assigned_idx'],:])<reached_radius:
                     purge_list.append(self.agents_dict[i]['assigned_idx'])
+
         for i in range(self.n_agents):
-            if assignment_group == 'spectral_clustering':self.agents_dict[i]['cluster_idx'] = [checkpoint for checkpoint in self.agents_dict[i]['cluster_idx'] if checkpoint not in purge_list]
+            if assignment_group == 'clustering': self.agents_dict[i]['cluster_idx'] = [checkpoint for checkpoint in self.agents_dict[i]['cluster_idx'] if checkpoint not in purge_list]
             if self.agents_dict[i]['assigned_idx'] in purge_list:
                 self.agents_dict[i]['assigned_idx'] = None
 
