@@ -22,5 +22,6 @@ The file "appendix.py" contains a script for running the experiments of the appe
 
 <a id="1">[1]</a> 
 E. Jones, T. Oliphant, P. Petersonet al., “SciPy: Open source scientific tools for Python,” 2001–. [Online]. Available: http://www.scipy.org/
+
 <a id="2">[2]</a> 
 F. Pedregosa,  G.  Varoquaux,  A.  Gramfort,  V.  Michel,  B.  Thirion, O. Grisel, M. Blondel, P. Prettenhofer, R. Weiss, V. Dubourg, J. Van-derplas,  A.  Passos,  D.  Cournapeau,  M.  Brucher,  M.  Perrot,  andE.  Duchesnay,  “Scikit-learn:  Machine  learning  in  Python,” Journalof Machine Learning Research, vol. 12, pp. 2825–2830, 2011.
