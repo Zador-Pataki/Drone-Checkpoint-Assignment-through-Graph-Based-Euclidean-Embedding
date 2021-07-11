@@ -18,7 +18,7 @@ The file "run_experiments.py" contains a script for running the core experiments
 The file "appendix.py" contains a script for running the experiments of the appendix of this work. The results of these experiments were those presented in the appendix of the paper.
 
 ## Open source code leveraged
-[[1]](#1), [[2]](#2)
+In our code, we utilized open source code from the libraries ScipPy [[1]](#1) and Scikit-learn [[2]](#2).
 
 <a id="1">[1]</a> 
 E. Jones, T. Oliphant, P. Petersonet al., “SciPy: Open source scientific tools for Python,” 2001–. [Online]. Available: http://www.scipy.org/
