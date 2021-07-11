@@ -1,9 +1,7 @@
 from time import time
-
 import matplotlib.pyplot as plt
 import numpy as np
-from tqdm import tqdm, trange
-
+from tqdm import trange
 from controller import Controller
 from simulation import Simulation
 from world import World
@@ -26,7 +24,7 @@ def write_experiment_file(experiment_results_dir, experiment_number, **variables
 
 def save_checkpoints_plot(experiment_results_dir, experiment_number, times, n_checkpoints):
     """
-    SAVES CHECKPOINTS VS TIME PLTO
+    SAVES CHECKPOINTS VS TIME PLOT
     :param experiment_results_dir (string)
     :param experiment_number (int)
     :param times (list): containing time elapsed at each increment
@@ -50,78 +48,83 @@ def save_experiment_plot(n_agents, n_checkpoints_list, assignment_group_scores, 
 
 
 if __name__ == "__main__":
+
     # EXPERIMENT INFO
     experiment_results_dir = 'experiments'
     experiment_number = 0
-    np.random.seed(1)
+    seed = 1
+    np.random.seed(seed)
 
     # SYSTEM PARAMETERS
-    n_agents_list = [10]  # [10, 100]
-    n_checkpoints_list = [500, 1000, 1500]
+    n_agents_list = [10, 10, 40, 70, 100]
+    n_checkpoints_list = [250, 500, 750, 1000, 1250, 1500]
     world_size = [1000, 1000, 1000]
     view_radius = 600
     # CONTROLLER PARAMETERS
-    assignment_group_list = ['points']  # ['points', 'clustering']
-    assignment_strategy_list = ['random']  # ['random', 'CSE', 'euclidean']
+    assignment_group_list = ['clustering', 'points', 'clustering']
+    cse_group_list = ['kmeans', 'spectral', 'kmeans']
+    assignment_strategy_list = ['CSE', 'random', 'CSE', 'euclidean']
     cse_strategy = 3
     # SIMULATION PARAMETERS
     speed = 10
     dt = 1
     finish_process = False
     # NUMBER OF TESTS PER HYPERPARAMETER SET
-    n_tests = 3
-
-    # world = World(n_agents=50, n_checkpoints=1000, world_size=[1000, 1000, 1000], view_radius=600)
-    # controller = Controller(assignment_group='points', assignment_strategy='euclidean', cse_strategy=cse_strategy)
-    # simulation = Simulation(speed=speed, dt=dt, finish_process=finish_process)
-    #
-    # start = time()
-    # simulation.simulate(world, controller)
-    # #print("process time:", time()-start)
+    n_tests = 1
 
     results_matrix = np.zeros(
-        (len(assignment_group_list) * len(assignment_strategy_list), len(n_agents_list) * len(n_checkpoints_list),2))
+        (len(assignment_group_list) * len(assignment_strategy_list), len(n_agents_list) * len(n_checkpoints_list), 2))
     j = 0
     for n_agents in n_agents_list:
         for n_checkpoints in n_checkpoints_list:
             i = 0
             for assignment_group in assignment_group_list:
                 for assignment_strategy in assignment_strategy_list:
-                    sim_times = []
-                    process_times = []
-                    for _ in trange(n_tests):
-                        world = World(n_agents=n_agents, n_checkpoints=n_checkpoints, world_size=world_size,
-                                      view_radius=view_radius)
-                        controller = Controller(assignment_group=assignment_group,
-                                                assignment_strategy=assignment_strategy, cse_strategy=cse_strategy)
-                        simulation = Simulation(speed=speed, dt=dt, finish_process=finish_process)
+                    if assignment_strategy == 'CSE' and assignment_group == 'clustering':
+                        for cse_group in cse_group_list:
+                            sim_times = []
+                            process_times = []
+                            for _ in trange(n_tests):
+                                world = World(n_agents=n_agents, n_checkpoints=n_checkpoints, world_size=world_size,
+                                              view_radius=view_radius)
+                                controller = Controller(assignment_group=assignment_group,
+                                                        assignment_strategy=assignment_strategy,
+                                                        cse_strategy=cse_strategy, cse_group=cse_group)
+                                simulation = Simulation(speed=speed, dt=dt, finish_process=finish_process)
 
-                        start = time()
-                        simulation.simulate(world, controller)
-                        sim_times.append(simulation.time_elapsed_list[-1])
-                        process_times.append(time() - start)
+                                start = time()
+                                simulation.simulate(world, controller)
+                                sim_times.append(simulation.time_elapsed_list[-1])
+                                process_times.append(time() - start)
 
-                    results_matrix[i, j, 0] = np.mean(sim_times)
-                    results_matrix[i, j, 1] = np.mean(process_times)
-                    i += 1
+                            results_matrix[i, j, 0] = np.mean(sim_times)
+                            results_matrix[i, j, 1] = np.mean(process_times)
+                            i += 1
+                    else:
+                        sim_times = []
+                        process_times = []
+                        for _ in trange(n_tests):
+                            world = World(n_agents=n_agents, n_checkpoints=n_checkpoints, world_size=world_size,
+                                          view_radius=view_radius)
+                            controller = Controller(assignment_group=assignment_group,
+                                                    assignment_strategy=assignment_strategy, cse_strategy=cse_strategy)
+                            simulation = Simulation(speed=speed, dt=dt, finish_process=finish_process)
+
+                            start = time()
+                            simulation.simulate(world, controller)
+                            sim_times.append(simulation.time_elapsed_list[-1])
+                            process_times.append(time() - start)
+
+                        results_matrix[i, j, 0] = np.mean(sim_times)
+                        results_matrix[i, j, 1] = np.mean(process_times)
+                        i += 1
             j += 1
 
-
-    np.save(experiment_results_dir + '/' + str(n_agents_list[0]) + '_' + assignment_group_list[0] + '_' +
-            assignment_strategy_list[0], results_matrix)
-
-
-    # write_experiment_file(experiment_results_dir, experiment_number,
-    #                       n_agents=n_agents,
-    #                       n_checkpoints=n_checkpoints,
-    #                       n_world_size=world_size,
-    #                       view_radius=view_radius,
-    #                       assignment_group=assignment_group,
-    #                       assignment_strategy=assignment_strategy,
-    #                       speed=speed,
-    #                       dt=dt,
-    #                       assignments_each_iter=assignments_each_iter,
-    #                       time_taken=simulation.time_elapsed_list[-1])
-    #
-    # save_checkpoints_plot(experiment_results_dir, experiment_number, simulation.time_elapsed_list, simulation.number_of_checkpoints_list)
-    #
+    if assignment_strategy == 'CSE' and assignment_group == 'clustering':
+        np.save(experiment_results_dir + '/' + str(n_agents_list[0]) + '_' + assignment_group_list[0] + '_' +
+                cse_group_list[
+                    0] + '_' + assignment_strategy_list[0] + '_extra', results_matrix)
+    else:
+        np.save(experiment_results_dir + '/' + str(n_agents_list[0]) + '_' + assignment_group_list[0] + '_' +
+                assignment_strategy_list[0] + '_' +
+                str(seed), results_matrix)
