@@ -1,4 +1,4 @@
-# Drone-Checkpoint Assignment through Graph Based Euclidean Embedding
+# Drone-Checkpoint Assignment through Graph Based Euclidean Embedding ([Project Paper](https://github.com/Zador-Pataki/aticcode/files/7707152/ATIC_project.pdf))
 
 This repository contains the code used to run the experiments of the project "Drone-Checkpoint  Assignment  through  Graph  Based  EuclideanEmbeddings" by Zador Pataki and  CarlosCarlos A. Guija Deza, for the course Advanced topics in control 
  
