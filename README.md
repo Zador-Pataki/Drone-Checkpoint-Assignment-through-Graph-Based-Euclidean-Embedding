@@ -1,7 +1,8 @@
 # Drone-Checkpoint Assignment through Graph Based Euclidean Embedding 
-- [Project Report PDF](https://github.com/Zador-Pataki/aticcode/files/7707152/ATIC_project.pdf)
 
-This repository contains the code used to run the experiments of the project "Drone-Checkpoint  Assignment  through  Graph  Based  EuclideanEmbeddings" by Zador Pataki and  CarlosCarlos A. Guija Deza, for the course Advanced topics in control 
+This repository contains the code used to run the experiments of the project "Drone-Checkpoint  Assignment  through  Graph  Based  EuclideanEmbeddings" by Zador Pataki and  CarlosCarlos A. Guija Deza, for the course Advanced topics in control.
+
+- [Project Report PDF](https://github.com/Zador-Pataki/aticcode/files/7707152/ATIC_project.pdf)
  
 ## System description
 The file "world.py" contains a class which stores all relevant functions and variables for constructing and manipulating the graphs of the framework at individual process increments.
